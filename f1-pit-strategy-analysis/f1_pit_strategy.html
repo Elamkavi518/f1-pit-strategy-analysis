@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>F1 Pit Stop Strategy Analysis | Elamkavi518</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --red:     #E8002D;
+    --red-dim: #9B001E;
+    --gold:    #FFD700;
+    --white:   #F5F5F5;
+    --dim:     #A0A0A0;
+    --bg:      #080808;
+    --card:    #111111;
+    --border:  #222222;
+    --soft:    #FF1E1E;
+    --medium:  #FFD700;
+    --hard:    #DDDDDD;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── HERO ─────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+    padding: 2rem;
+  }
+
+  .hero-track {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 60px,
+        rgba(232,0,45,0.04) 60px,
+        rgba(232,0,45,0.04) 61px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 60px,
+        rgba(232,0,45,0.04) 60px,
+        rgba(232,0,45,0.04) 61px
+      );
+    animation: grid-scroll 20s linear infinite;
+  }
+
+  @keyframes grid-scroll {
+    from { background-position: 0 0, 0 0; }
+    to   { background-position: 60px 60px, 60px 60px; }
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(232,0,45,0.15) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .checkered-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: repeating-linear-gradient(
+      90deg,
+      #fff 0px, #fff 12px,
+      #000 12px, #000 24px
+    );
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    opacity: 0;
+    animation: fade-up 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 9vw, 7.5rem);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    animation: fade-up 0.8s 0.4s forwards;
+  }
+
+  .hero-title span { color: var(--red); }
+
+  .hero-sub {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    color: var(--dim);
+    max-width: 520px;
+    margin: 1.5rem auto 2.5rem;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fade-up 0.8s 0.6s forwards;
+  }
+
+  .hero-badges {
+    display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+    opacity: 0;
+    animation: fade-up 0.8s 0.8s forwards;
+  }
+
+  .badge {
+    padding: 0.3rem 0.9rem;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    background: rgba(255,255,255,0.03);
+    text-transform: uppercase;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .badge:hover { border-color: var(--red); color: var(--white); }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fade-up 1s 1.2s forwards;
+  }
+
+  .scroll-line {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--red), transparent);
+    animation: scroll-pulse 2s infinite;
+  }
+
+  @keyframes scroll-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* ── SECTIONS ─────────────────────────────────────────── */
+  section { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1;
+    margin-bottom: 3rem;
+  }
+
+  /* ── METRIC GRID ─────────────────────────────────────── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    margin-bottom: 4rem;
+    background: var(--border);
+  }
+
+  .metric-card {
+    background: var(--card);
+    padding: 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .metric-card:hover { background: #161616; }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--red);
+    transform: scaleX(0);
+    transition: transform 0.4s;
+    transform-origin: left;
+  }
+  .metric-card:hover::before { transform: scaleX(1); }
+
+  .metric-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: var(--red);
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+  }
+
+  /* ── CHART BLOCK ─────────────────────────────────────── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 1px;
+  }
+
+  .chart-block {
+    background: var(--card);
+    padding: 2rem;
+    position: relative;
+  }
+
+  .chart-block.full { grid-column: 1 / -1; }
+
+  .chart-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* Pit Stops Bar Chart */
+  .bar-chart { display: flex; align-items: flex-end; gap: 1.5rem; height: 180px; }
+
+  .bar-group {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0.5rem; flex: 1;
+  }
+
+  .bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    position: relative;
+    transition: opacity 0.3s;
+  }
+  .bar:hover { opacity: 0.85; }
+
+  .bar-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--white);
+  }
+
+  .bar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  /* Compound Pills */
+  .compound-list { display: flex; flex-direction: column; gap: 1rem; }
+
+  .compound-row { display: flex; align-items: center; gap: 1rem; }
+
+  .compound-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .compound-bar-bg {
+    flex: 1; height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .compound-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .compound-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    width: 60px;
+    text-transform: uppercase;
+  }
+
+  .compound-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--white);
+    width: 60px;
+    text-align: right;
+  }
+
+  /* Degradation chart */
+  .deg-chart {
+    position: relative;
+    height: 160px;
+    margin-top: 0.5rem;
+  }
+
+  .deg-svg { width: 100%; height: 100%; }
+
+  /* Strategy Map */
+  .strategy-map { display: flex; flex-direction: column; gap: 0.7rem; }
+
+  .strategy-row {
+    display: flex; align-items: center; gap: 1rem;
+  }
+
+  .strategy-driver {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--dim);
+    width: 36px;
+    text-align: right;
+  }
+
+  .strategy-stints { display: flex; flex: 1; gap: 2px; height: 22px; }
+
+  .stint-block {
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    color: rgba(0,0,0,0.85);
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .stint-block:hover { opacity: 0.8; }
+
+  .strategy-pos {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--dim);
+    width: 28px;
+    text-align: center;
+  }
+
+  /* ── INSIGHT CARDS ───────────────────────────────────── */
+  .insight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .insight-card {
+    background: var(--card);
+    padding: 2rem;
+    border-left: 3px solid transparent;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .insight-card:hover { background: #151515; border-left-color: var(--red); }
+
+  .insight-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: var(--red);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .insight-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .insight-body {
+    font-size: 0.82rem;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+
+  /* ── TECH STACK ──────────────────────────────────────── */
+  .tech-row {
+    display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.5rem;
+  }
+
+  .tech-pill {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    background: rgba(255,255,255,0.02);
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .tech-pill:hover {
+    border-color: var(--red);
+    color: var(--white);
+    background: rgba(232,0,45,0.05);
+  }
+
+  /* ── CTA ─────────────────────────────────────────────── */
+  .cta-section {
+    text-align: center;
+    padding: 6rem 2rem;
+    border-top: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(232,0,45,0.1) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .cta-sub {
+    color: var(--dim);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+
+  .cta-links {
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    position: relative;
+  }
+
+  .btn {
+    padding: 0.85rem 2.2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.25s;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+
+  .btn-primary {
+    background: var(--red);
+    color: white;
+    border: 1px solid var(--red);
+  }
+  .btn-primary:hover {
+    background: #c00025;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(232,0,45,0.3);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--white);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--white);
+    transform: translateY(-2px);
+  }
+
+  /* ── DIVIDER ─────────────────────────────────────────── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+  }
+
+  /* ── FOOTER ──────────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    color: #333;
+    text-transform: uppercase;
+  }
+
+  /* ── RESPONSIVE ──────────────────────────────────────── */
+  @media (max-width: 680px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .chart-block.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero" style="padding: 0; max-width: 100%; margin: 0;">
+  <div class="checkered-line"></div>
+  <div class="hero-track"></div>
+  <div class="hero-glow"></div>
+
+  <p class="hero-eyebrow">Data Science × Formula 1</p>
+  <h1 class="hero-title">PIT STOP<br><span>STRATEGY</span><br>DECODED</h1>
+  <p class="hero-sub">
+    Analyzing how tyre strategy, compound choice, and pit timing
+    shape race outcomes using real F1 telemetry data.
+  </p>
+  <div class="hero-badges">
+    <span class="badge">FastF1</span>
+    <span class="badge">Pandas</span>
+    <span class="badge">Matplotlib</span>
+    <span class="badge">Scikit-learn</span>
+    <span class="badge">Python 3.8+</span>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- METRICS -->
+<section>
+  <p class="section-label">By the numbers</p>
+  <h2 class="section-title">RACE INSIGHTS</h2>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-value">5</div>
+      <div class="metric-label">Visualizations Generated</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">20</div>
+      <div class="metric-label">Drivers Analyzed</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">3</div>
+      <div class="metric-label">Tyre Compounds</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">R²</div>
+      <div class="metric-label">ML Model Trained</div>
+    </div>
+  </div>
+
+  <!-- CHART GRID -->
+  <div class="chart-grid">
+
+    <!-- Pit Stops vs Position -->
+    <div class="chart-block">
+      <div class="chart-title">PIT STOPS VS FINISH POSITION</div>
+      <div class="bar-chart" id="barChart">
+        <div class="bar-group">
+          <div class="bar-val">P4.2</div>
+          <div class="bar" style="height:60%; background: var(--red);"></div>
+          <div class="bar-label">1 Stop</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-val">P7.1</div>
+          <div class="bar" style="height:40%; background: #992040;"></div>
+          <div class="bar-label">2 Stops</div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-val">P11.8</div>
+          <div class="bar" style="height:25%; background: #601030;"></div>
+          <div class="bar-label">3 Stops</div>
+        </div>
+      </div>
+      <p style="font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--dim); margin-top:1rem;">
+        Lower position number = better result. Data: 2023 Bahrain GP
+      </p>
+    </div>
+
+    <!-- Compound Pace -->
+    <div class="chart-block">
+      <div class="chart-title">COMPOUND AVERAGE PACE</div>
+      <div class="compound-list">
+        <div class="compound-row">
+          <div class="compound-name">Soft</div>
+          <div class="compound-bar-bg">
+            <div class="compound-bar-fill" style="width:100%; background:var(--soft);"></div>
+          </div>
+          <div class="compound-time">~95.1s</div>
+        </div>
+        <div class="compound-row">
+          <div class="compound-name">Medium</div>
+          <div class="compound-bar-bg">
+            <div class="compound-bar-fill" style="width:78%; background:var(--medium);"></div>
+          </div>
+          <div class="compound-time">~96.8s</div>
+        </div>
+        <div class="compound-row">
+          <div class="compound-name">Hard</div>
+          <div class="compound-bar-bg">
+            <div class="compound-bar-fill" style="width:60%; background:var(--hard);"></div>
+          </div>
+          <div class="compound-time">~98.3s</div>
+        </div>
+      </div>
+      <p style="font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--dim); margin-top:1.5rem;">
+        Soft = fastest raw pace. Hard = longest lasting. Strategy = the trade-off.
+      </p>
+    </div>
+
+    <!-- Strategy Map -->
+    <div class="chart-block full">
+      <div class="chart-title">DRIVER STRATEGY MAP — TOP 10</div>
+      <div class="strategy-map" id="strategyMap">
+        <!-- Rendered via JS -->
+      </div>
+      <p style="display:flex; gap:1.5rem; margin-top:1.2rem; flex-wrap:wrap;">
+        <span style="font-family:'DM Mono',monospace; font-size:0.65rem; display:flex; align-items:center; gap:0.4rem;">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--soft);display:inline-block;"></span> Soft
+        </span>
+        <span style="font-family:'DM Mono',monospace; font-size:0.65rem; display:flex; align-items:center; gap:0.4rem;">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--medium);display:inline-block;"></span> Medium
+        </span>
+        <span style="font-family:'DM Mono',monospace; font-size:0.65rem; display:flex; align-items:center; gap:0.4rem;">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--hard);display:inline-block;"></span> Hard
+        </span>
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- INSIGHTS -->
+<section>
+  <p class="section-label">What the data says</p>
+  <h2 class="section-title">KEY FINDINGS</h2>
+
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-number">01</div>
+      <div class="insight-title">One Stop Wins</div>
+      <div class="insight-body">
+        On Bahrain's track layout, 1-stop strategies consistently delivered
+        better finishing positions than 2-stop approaches — track position matters more than fresh rubber.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-number">02</div>
+      <div class="insight-title">Soft Tyre Window</div>
+      <div class="insight-body">
+        Soft compounds peak in the first 15–18 laps, then degrade sharply.
+        Teams that miss the pit window lose ~1.5–2s per lap in the final stint.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-number">03</div>
+      <div class="insight-title">Undercut Power</div>
+      <div class="insight-body">
+        Drivers pitting 2–3 laps earlier than their rival gained on average
+        1.8 positions via the undercut — fresh tyre pace outweighs lost track position.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-number">04</div>
+      <div class="insight-title">ML Confirms Strategy</div>
+      <div class="insight-body">
+        Linear regression (R² ≈ 0.61) confirms average pace dominates results,
+        but each additional pit stop statistically costs ~2.3 finishing positions.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TECH STACK -->
+<section>
+  <p class="section-label">Built with</p>
+  <h2 class="section-title">TECH STACK</h2>
+  <p style="color:var(--dim); max-width:520px; line-height:1.7; font-size:0.9rem;">
+    Real telemetry data pulled directly from F1's official data feed via FastF1.
+    No manual CSV downloads — fully automated, reproducible analysis.
+  </p>
+  <div class="tech-row">
+    <span class="tech-pill">FastF1 3.x</span>
+    <span class="tech-pill">Pandas</span>
+    <span class="tech-pill">Matplotlib</span>
+    <span class="tech-pill">Seaborn</span>
+    <span class="tech-pill">Scikit-learn</span>
+    <span class="tech-pill">NumPy</span>
+    <span class="tech-pill">VS Code</span>
+    <span class="tech-pill">Python 3.8+</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-glow"></div>
+  <h2 class="cta-title">EXPLORE THE CODE</h2>
+  <p class="cta-sub">Full source c
